@@ -1,4 +1,13 @@
-#include "imgutils.h"
+ #include "imgutils.h"
+#include <QPixmap>
+#include <QDebug>
+
+void showMatImage(Mat image, QString win_name, int width, int height)
+{
+    namedWindow(win_name.toStdString(), WINDOW_NORMAL);
+    resizeWindow(win_name.toStdString(), width, height);
+    imshow(win_name.toStdString(), image);
+}
 
 cv::Mat QImageToMat(QImage image)
 {
@@ -12,8 +21,9 @@ cv::Mat QImageToMat(QImage image)
         break;
     case QImage::Format_RGB888:
         mat = cv::Mat(image.height(), image.width(), CV_8UC3, (void*)image.constBits(), image.bytesPerLine());
-        cv::cvtColor(mat, mat, CV_BGR2RGB);
+        cv::cvtColor(mat, mat, CV_RGB2BGR);
         break;
+    case QImage::Format_Indexed8:
     case QImage::Format_Grayscale8:
         mat = cv::Mat(image.height(), image.width(), CV_8UC1, (void*)image.constBits(), image.bytesPerLine());
         break;
@@ -171,7 +181,7 @@ Mat screen0(Mat src)
     if(src.channels() != 1)
         cvtColor(src, src, CV_RGB2GRAY);
 
-    Mat img(src.cols*12, src.rows*12, CV_8UC1, Scalar(255, 255, 255));
+    Mat img(src.rows*12, src.cols*12, CV_8UC1, Scalar(255, 255, 255));
     Mat kernel = (Mat_<uchar>(12, 12) <<144,140,132,122,107,63,54,93,106,123,133,142,
                   143,137,128,104,94,41,31,65,98,116,120,139,
                   135,131,114,97,61,35,24,55,80,103,113,125,
@@ -192,7 +202,7 @@ Mat screen0(Mat src)
         {
             int l = j % kernel.cols;
             int pixelValue = ceil(src.at<uchar>(i/12, j/12) / 255.0*144);
-            if(pixelValue < kernel.at<uchar>(k,l))
+            if(pixelValue <= kernel.at<uchar>(k,l))
                 img.at<char>(i, j) = 0;
             else
                 img.at<char>(i, j) = 255;
@@ -212,7 +222,7 @@ Mat screen45(Mat src)
     if(src.channels() != 1)
         cvtColor(src, src, CV_RGB2GRAY);
 
-    Mat img(src.cols*12, src.rows*12, CV_8UC1, Scalar(255, 255, 255));
+    Mat img(src.rows*12, src.cols*12, CV_8UC1, Scalar(255, 255, 255));
     Mat kernel = (Mat_<uchar>(8, 16) <<128,120,109,92,74,66,46,8,15,10,64,79,97,111,122,127,
                   123,116,87,69,62,38,6,39,42,3,19,55,86,105,115,119,
                   107,96,71,59,24,12,28,52,63,47,20,1,58,95,108,112,
@@ -234,7 +244,7 @@ Mat screen45(Mat src)
         {
             int l = (j%img.cols + t) % kernel.cols;
             int pixelValue = ceil(src.at<uchar>(i/12, j/12) / 255.0*128);
-            if(pixelValue < kernel.at<uchar>(k,l))
+            if(pixelValue <= kernel.at<uchar>(k,l))
                 img.at<char>(i, j) = 0;
             else
                 img.at<char>(i, j) = 255;
@@ -252,10 +262,11 @@ Mat screen45(Mat src)
 
 Mat screen75(Mat src)
 {
+  //  showMatImage(src, "before");
     if(src.channels() != 1)
         cvtColor(src, src, CV_RGB2GRAY);
 
-    Mat img(src.cols*12, src.rows*12, CV_8UC1, Scalar(255, 255, 255));
+    Mat img(src.rows*12, src.cols*12, CV_8UC1, Scalar(255, 255, 255));
     Mat kernel = (Mat_<uchar>(3, 51) << 153,148,120,77,53,28,26,60,87,122,131,135,132,124,116,104,73,47,23,6,56,66,85,57,51,39,
                   19,8,15,2,7,17,55,79,83,99,102,109,112,117,105,74,54,14,24,64,84,121,137,142,150,
                   145,139,101,69,48,11,34,68,100,128,138,143,147,141,125,97,71,43,13,30,62,90,107,110,96,91,
@@ -271,20 +282,20 @@ Mat screen75(Mat src)
         for(int j=0; j<img.cols; j++)
         {
             int l = (j%img.cols + t) % kernel.cols;
-//            int pixelValue = ceil(src.at<uchar>(i/12, j/12) / 255.0*153);
-//            if(pixelValue < kernel.at<uchar>(k,l))
-//                img.at<char>(i, j) = 0;
-//            else
-//                img.at<char>(i, j) = 255;
+            int pixelValue = ceil(src.at<uchar>(i/12, j/12) / 255.0*153);
+            if(pixelValue <= kernel.at<uchar>(k,l))
+                img.at<char>(i, j) = 0;
+            else
+                img.at<char>(i, j) = 255;
 
-            img.at<char>(i, j) = kernel.at<uchar>(k,l);
+        //    img.at<char>(i, j) = kernel.at<uchar>(k,l);
 
         }
     }
 
 
     Mat roi = img(Rect(12*50, 12*50, 24, 24));
-    return roi;
+    return img;
 }
 
 
@@ -293,7 +304,7 @@ Mat screen15(Mat src)
     if(src.channels() != 1)
         cvtColor(src, src, CV_RGB2GRAY);
 
-    Mat img(src.cols*12, src.rows*12, CV_8UC1, Scalar(255, 255, 255));
+    Mat img(src.rows*12, src.cols*12, CV_8UC1, Scalar(255, 255, 255));
     Mat kernel = (Mat_<uchar>(3, 51) << 153,145,136,117,95,81,8,52,93,104,97,86,77,69,59,54,41,29,7,5,36,23,13,18,26,34,
                   46,64,67,72,79,25,50,66,90,103,122,128,130,137,134,118,102,82,16,51,96,115,132,147,152,
                   148,139,126,105,98,78,15,27,80,73,71,61,53,48,31,14,1,10,17,4,3,6,30,49,60,68,
@@ -310,7 +321,7 @@ Mat screen15(Mat src)
         {
             int l = (j%img.cols + t) % kernel.cols;
             int pixelValue = ceil(src.at<uchar>(i/12, j/12) / 255.0*153);
-            if(pixelValue < kernel.at<uchar>(k,l))
+            if(pixelValue <= kernel.at<uchar>(k,l))
                 img.at<char>(i, j) = 0;
             else
                 img.at<char>(i, j) = 255;
@@ -325,6 +336,153 @@ Mat screen15(Mat src)
     return img;
 }
 
+Mat FrequenceM  (Mat src)
+{
+    if (src.channels() != 1)
+            cvtColor(src, src, CV_RGB2GRAY);
+
+        Mat img(src.rows * 12, src.cols * 12, CV_8UC1, Scalar(255, 255, 255));
+        Mat pix = Mat::zeros(img.size(), CV_8UC1);
+        double A1 = 7.0 / 16;
+        double A2 = 3.0 / 16;
+        double A3 = 5.0 / 16;
+        double A4 = 1.0 / 16;
+
+        for (int i = 0; i<img.rows; i++)
+        {
+            for (int j = 0; j<img.cols; j++)
+            {
+                pix.at<uchar>(i, j) = src.at<uchar>(i / 12, j / 12) * 144.0 / 255 + 0.5;
+            }
+        }
+        float nError;
+        for (int i = 0; i<img.rows - 1; i++)
+        {
+            for (int j = 1; j<img.cols - 1; j++)
+            {
+                if (pix.at<uchar>(i, j) <= 72)
+                {
+                    nError = pix.at<uchar>(i, j);
+                    img.at<uchar>(i, j) = 0;
+                }
+                else
+                {
+                    nError = pix.at<uchar>(i, j) - 144;
+                    img.at<uchar>(i, j) = 255;
+                }
+                pix.at<uchar>(i, j + 1) += nError*A1;
+                pix.at<uchar>(i + 1, j - 1) += nError*A2;
+                pix.at<uchar>(i + 1, j) += nError*A3;
+                pix.at<uchar>(i + 1, j + 1) += nError*A4;
+
+            }
+        }
+        Mat roi = img(Rect(12 * 50, 12 * 50, 24, 24));
+        return img;
+}
+
+Mat ErrR(Mat src)
+{
+    if (src.channels() != 1)
+        cvtColor(src, src, CV_RGB2GRAY);
+
+    Mat img(src.rows * 8, src.cols * 8, CV_8UC1, Scalar(255, 255, 255));//放大4倍
+    Mat kernel = (Mat_<uchar>(8, 8) <<
+        0, 32, 8, 40, 2, 34, 10, 42,
+        48, 16, 56, 42, 50, 18, 58, 26,
+        12, 44, 4, 36, 14, 46, 6, 38,
+        60, 28, 52, 20, 62, 30, 54, 22,
+        3, 35, 11, 43, 1, 33, 9, 41,
+        51, 19, 59, 27, 49, 17, 57, 25,
+        15, 47, 7, 39, 13, 45, 5, 37,
+        63, 31, 55, 23, 61, 29, 53, 21);
+
+    int q = 8;
+
+    for (int i = 0; i<img.rows; i++)
+    {
+        float k = i % q;
+        //int t = q*kernel.rows*(i/kernel.rows) % img.cols;
+        for (int j = 0; j<img.cols; j++)
+        {
+            // int l = (j%img.cols + t) % kernel.cols;
+            float l = j % q;
+
+            int pixelValue = ceil(src.at<uchar>(i/q, j/q) / 255.0 * 64);
+
+            if (pixelValue <= kernel.at<uchar>(k, l))
+                img.at<char>(i, j) = 0;
+            else
+                img.at<char>(i, j) = 255;
+        }
+    }
+    Mat roi = img(Rect(12 * 50, 12 * 50, 24, 24));
+    return img;
+
+}
+
+
+double getPSNR(const Mat& I1, const Mat& I2) {
+    Mat s1;
+    absdiff(I1, I2, s1);
+    s1.convertTo(s1, CV_32F);
+    s1 = s1.mul(s1);
+    Scalar s = sum(s1);
+    double sse = s.val[0] + s.val[1] + s.val[2];
+    if (sse <= 1e-10)
+        return 0;
+    else {
+        double mse = sse / (double)(I1.channels()*I1.total());
+        double psnr = 10.0*log10(255 * 255 / mse);
+        return psnr;
+    }
+
+}
+
+Scalar getMSSIM(const Mat& i1, const Mat& i2) {
+    const double C1 = 6.5025, C2 = 58.5225;
+    int d = CV_32F;
+
+    Mat I1, I2;
+    i1.convertTo(I1, d);
+    i2.convertTo(I2, d);
+    Mat I2_2 = I2.mul(I2);     // I2^2
+    Mat I1_2 = I1.mul(I1);      //I1^2
+    Mat I1_I2 = I1.mul(I2);     // I1*I2
+
+    Mat mu1, mu2;
+    GaussianBlur(I1, mu1, Size(11, 11), 1.5);
+    GaussianBlur(I2, mu2, Size(11, 11), 1.5);
+
+    Mat mu1_2 = mu1.mul(mu1);
+    Mat mu2_2 = mu2.mul(mu2);
+    Mat mu1_mu2 = mu1.mul(mu2);
+
+    Mat sigma1_2, sigma2_2, sigma12;
+
+    GaussianBlur(I1_2, sigma1_2, Size(11, 11), 1.5);
+    sigma1_2 -= mu1_2;
+
+    GaussianBlur(I2_2, sigma2_2, Size(11, 11), 1.5);
+    sigma2_2 -= mu2_2;
+
+    GaussianBlur(I1_I2, sigma12, Size(11, 11), 1.5);
+    sigma12 -= mu1_mu2;
+
+    Mat t1, t2, t3;
+    t1 = 2 * mu1_mu2 + C1;
+    t2 = 2 * sigma12 + C2;
+    t3 = t1.mul(t2);
+
+    t1 = mu1_2 + mu2_2 + C1;
+    t2 = sigma1_2 + sigma2_2 + C2;
+    t1 = t1.mul(t2);
+
+    Mat ssim_map;
+    divide(t3, t1, ssim_map);
+    Scalar mssim = mean(ssim_map);
+    return mssim;
+}
 
 uchar minimum(uchar a, uchar b)
 {
@@ -364,11 +522,12 @@ cv::Mat rgb2cmyk(cv::Mat& rgb)
     return cmyk;
 }
 
+
 cv::Mat bgr2cmyk(cv::Mat& bgr)
 {
     Mat rgb;
     cv::cvtColor(bgr, rgb, cv::COLOR_BGR2RGB);
-
+   // showMatImage(rgb, "rgb");
     cv::Mat cmyk = cv::Mat::zeros(rgb.rows, rgb.cols, CV_8UC4);
     int pixel_num = rgb.rows * rgb.cols;
     for (int i = 0; i < pixel_num; i++)
@@ -391,6 +550,9 @@ cv::Mat bgr2cmyk(cv::Mat& bgr)
             C = (uchar)((c - K)*255.0 / (255 - K));
             M = (uchar)((m - K)*255.0 / (255 - K));
             Y = (uchar)((y - K)*255.0 / (255 - K));
+//            C = (uchar)(c - K);
+//            M = (uchar)(m - K);
+//            Y = (uchar)(y - K);
         }
         cmyk.data[4 * i + 0] = C;
         cmyk.data[4 * i + 1] = M;
@@ -399,3 +561,5 @@ cv::Mat bgr2cmyk(cv::Mat& bgr)
     }
     return cmyk;
 }
+
+
